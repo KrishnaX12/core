@@ -80,11 +80,6 @@ export const Trace_doInitialSchematicTraceRender = (trace: Trace) => {
       connectedSchematicPorts[1],
     )
   ) {
-    for (const schematicPort of connectedSchematicPorts) {
-      db.schematic_port.update(schematicPort.schematic_port_id, {
-        is_connected: true,
-      })
-    }
     return
   }
 
