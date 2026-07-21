@@ -1,5 +1,9 @@
 import { MultilayerIjump } from "@tscircuit/infgrid-ijump-astar"
-import { type SchematicNetLabel, type SchematicTrace } from "circuit-json"
+import {
+  type SchematicNetLabel,
+  type SchematicPort,
+  type SchematicTrace,
+} from "circuit-json"
 import { calculateElbow } from "calculate-elbow"
 import { doesLineIntersectLine, type Point } from "@tscircuit/math-utils"
 import { DirectLineRouter } from "lib/utils/autorouting/DirectLineRouter"
@@ -14,6 +18,7 @@ import { getDominantDirection } from "lib/utils/autorouting/getDominantDirection
 import { countComplexElements } from "lib/utils/schematic/countComplexElements"
 import { getEnteringEdgeFromDirection } from "lib/utils/schematic/getEnteringEdgeFromDirection"
 import { getStubEdges } from "lib/utils/schematic/getStubEdges"
+import { isInternalCircuitPortMapping } from "lib/utils/schematic/isInternalCircuitPortMapping"
 import type { NetLabel } from "../NetLabel"
 import type { Port } from "../Port"
 import { createSchematicTraceCrossingSegments } from "./trace-utils/create-schematic-trace-crossing-segments"
@@ -60,6 +65,28 @@ export const Trace_doInitialSchematicTraceRender = (trace: Trace) => {
   const { netsWithSelectors } = trace._findConnectedNets()
 
   if (!allPortsFound) return
+
+  const connectedSchematicPorts = connectedPorts
+    .map(({ port }) =>
+      port.schematic_port_id
+        ? db.schematic_port.get(port.schematic_port_id)
+        : undefined,
+    )
+    .filter((port): port is SchematicPort => Boolean(port))
+  if (
+    connectedSchematicPorts.length === 2 &&
+    isInternalCircuitPortMapping(
+      connectedSchematicPorts[0],
+      connectedSchematicPorts[1],
+    )
+  ) {
+    for (const schematicPort of connectedSchematicPorts) {
+      db.schematic_port.update(schematicPort.schematic_port_id, {
+        is_connected: true,
+      })
+    }
+    return
+  }
 
   const portIds = connectedPorts.map((p) => p.port.schematic_port_id).sort()
   const portPairKey = portIds.join(",")
