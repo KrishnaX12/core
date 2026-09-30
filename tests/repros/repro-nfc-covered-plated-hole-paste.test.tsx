@@ -3,7 +3,7 @@ import type { AnyCircuitElement } from "circuit-json"
 import { getNfcCoveredHolePasteRepro } from "tests/fixtures/get-nfc-covered-hole-paste-repro"
 import "tests/fixtures/extend-expect-circuit-snapshot"
 
-test("published NFC antenna terminal receives paste despite solder mask coverage", () => {
+test("published NFC antenna terminal emits no paste when covered with solder mask", () => {
   const { antennaHole, renderedHoles, generatedPaste, circuitJson } =
     getNfcCoveredHolePasteRepro()
   expect(antennaHole.is_covered_with_solder_mask).toBe(true)
@@ -11,10 +11,7 @@ test("published NFC antenna terminal receives paste despite solder mask coverage
   expect(renderedHoles[0].is_covered_with_solder_mask).toBe(true)
   expect(renderedHoles[0].x).toBeCloseTo(antennaHole.x, 9)
   expect(renderedHoles[0].y).toBeCloseTo(antennaHole.y, 9)
-  expect(generatedPaste.map((paste) => paste.layer).sort()).toEqual([
-    "bottom",
-    "top",
-  ])
+  expect(generatedPaste.map((paste) => paste.layer).sort()).toEqual([])
   for (const paste of generatedPaste) {
     expect(paste.x).toBeCloseTo(antennaHole.x, 9)
     expect(paste.y).toBeCloseTo(antennaHole.y, 9)
