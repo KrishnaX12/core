@@ -4,7 +4,7 @@ import { getNfcCoveredHolePasteRepro } from "tests/fixtures/get-nfc-covered-hole
 import "tests/fixtures/extend-expect-circuit-snapshot"
 
 test("published NFC antenna terminal receives paste despite solder mask coverage", () => {
-  const { antennaHole, renderedHoles, generatedPaste, circuitJson } =
+  const { antennaHole, renderedHoles, generatedPaste } =
     getNfcCoveredHolePasteRepro()
   expect(antennaHole.is_covered_with_solder_mask).toBe(true)
   expect(renderedHoles).toHaveLength(1)
@@ -19,34 +19,39 @@ test("published NFC antenna terminal receives paste despite solder mask coverage
     expect(paste.x).toBeCloseTo(antennaHole.x, 9)
     expect(paste.y).toBeCloseTo(antennaHole.y, 9)
   }
-  expect(circuitJson).toMatchPcbSnapshot(import.meta.path, {
-    showSolderPaste: true,
-    layer: "bottom",
-    height: 1600,
-  })
-  const closeup: AnyCircuitElement[] = [
+  // Display only generated paste so copper cannot obscure the regression.
+  const closeup: AnyCircuitElement[] = [...generatedPaste]
+  const captions = [
+    { text: "COVERED NFC ANTENNA HOLE", y: 1.05, size: 0.2 },
+    { text: "Solder paste layer - bottom", y: 0.7, size: 0.16 },
     {
-      type: "pcb_board",
-      pcb_board_id: "terminal_paste_view",
-      center: { x: antennaHole.x, y: antennaHole.y + 0.3 },
-      width: 5,
-      height: 2,
-      thickness: 1.6,
-      num_layers: 2,
-      material: "fr4",
+      text: generatedPaste.length
+        ? "BUG: paste on a masked hole"
+        : "FIXED: no paste on a masked hole",
+      y: -0.7,
+      size: 0.18,
     },
-    ...generatedPaste,
+    {
+      text: `${generatedPaste.length} paste apertures total (top + bottom)`,
+      y: -1.05,
+      size: 0.16,
+    },
   ]
-  closeup.push({
-    type: "pcb_note_text",
-    pcb_note_text_id: "terminal_paste_caption",
-    text: `Masked L1 terminal: ${generatedPaste.length} paste apertures (both sides)`,
-    anchor_position: { x: antennaHole.x, y: antennaHole.y + 0.8 },
-    anchor_alignment: "center",
-    font: "tscircuit2024",
-    font_size: 0.1,
-    layer: "bottom",
-  })
+  if (generatedPaste.length === 0) {
+    captions.push({ text: "NO PASTE", y: 0, size: 0.23 })
+  }
+  for (const [index, caption] of captions.entries()) {
+    closeup.push({
+      type: "pcb_note_text",
+      pcb_note_text_id: `terminal_paste_caption_${index}`,
+      text: caption.text,
+      anchor_position: { x: antennaHole.x, y: antennaHole.y + caption.y },
+      anchor_alignment: "center",
+      font: "tscircuit2024",
+      font_size: caption.size,
+      layer: "bottom",
+    })
+  }
   expect(closeup).toMatchPcbSnapshot(
     import.meta.path.replace(".test.tsx", "-terminal.test.tsx"),
     {
@@ -54,10 +59,10 @@ test("published NFC antenna terminal receives paste despite solder mask coverage
       showPcbNotes: true,
       layer: "bottom",
       viewport: {
-        minX: antennaHole.x - 2.5,
-        maxX: antennaHole.x + 2.5,
-        minY: antennaHole.y - 0.7,
-        maxY: antennaHole.y + 1.3,
+        minX: antennaHole.x - 2,
+        maxX: antennaHole.x + 2,
+        minY: antennaHole.y - 1.5,
+        maxY: antennaHole.y + 1.5,
       },
     },
   )
